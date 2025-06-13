@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buscador de GIFs MARIOTHOR</title>
+  <style>
+    body {
+      font-family: 'Copperplate', sans-serif;
+      padding: 15px;
+      background: #f10f0f;
+      text-align: center;
+    }
+
+    input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin: 10px 5px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .gif-container {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .gif-container img {
+      width: 200px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Buscador de GIFs de Mario</h1>
+  <input type="text" id="searchInput" placeholder="Escribe una palabra clave">
+  <button onclick="buscarGifs()">Buscar</button>
+
+  <div class="gif-container" id="gifContainer"></div>
+
+  <!-- Botón para cargar más GIFs -->
+  <button id="loadMoreBtn" onclick="cargarMasGifs()" style="display:none;">Cargar más</button>
+
+  <script>
+    let giphyOffset = 0;
+    let tenorPos = '';
+    let searchTerm = '';
+
+    const giphyKey = 'lLpSoRhQvXRb9aOHkCdP3QISOk8vZ8qX';
+    const tenorKey = 'AIzaSyACIrnjjEmRfHTMxSio4UN2qqPbRT_AXF0';
+
+    async function buscarGifs() {
+      searchTerm = document.getElementById('searchInput').value.trim();
+      if (!searchTerm) {
+        alert("Por favor, escribe una palabra para buscar.");
+        return;
+      }
+
+      giphyOffset = 0;
+      tenorPos = '';
+      document.getElementById('gifContainer').innerHTML = '';
+      document.getElementById('loadMoreBtn').style.display = 'block';
+
+      await cargarMasGifs();
+    }
+
+    async function cargarMasGifs() {
+      const container = document.getElementById('gifContainer');
+
+      try {
+        const giphyURL = `https://api.giphy.com/v1/gifs/search?api_key=${giphyKey}&q=${encodeURIComponent(searchTerm)}&limit=5&offset=${giphyOffset}&rating=g`;
+        const tenorURL = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(searchTerm)}&key=${tenorKey}&limit=5&media_filter=gif&pos=${tenorPos}`;
+
+        const [giphyRes, tenorRes] = await Promise.all([
+          fetch(giphyURL),
+          fetch(tenorURL)
+        ]);
+
+        const giphyData = await giphyRes.json();
+        const tenorData = await tenorRes.json();
+
+        giphyData.data.forEach(gif => {
+          const img = document.createElement('img');
+          img.src = gif.images.fixed_height.url;
+          img.alt = gif.title;
+          container.appendChild(img);
+        });
+
+        if (tenorData.results) {
+          tenorData.results.forEach(gif => {
+            const img = document.createElement('img');
+            img.src = gif.media_formats.gif.url;
+            img.alt = gif.content_description || 'GIF de Tenor';
+            container.appendChild(img);
+          });
+        }
+
+        giphyOffset += 5;
+        tenorPos = tenorData.next || '';
+
+        if (giphyData.pagination.count < 5 && !tenorPos) {
+          document.getElementById('loadMoreBtn').style.display = 'none';
+        }
+
+      } catch (error) {
+        console.error("Error al cargar más GIFs:", error);
+        container.innerHTML += '<p>Ocurrió un error al cargar más GIFs.</p>';
+      }
+    }
+  </script>
+
+</body>
+</html>
